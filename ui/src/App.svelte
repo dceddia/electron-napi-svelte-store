@@ -11,6 +11,9 @@
 	<h1>Hello {name}!</h1>
 	<p>2 + 2 = {Napi.sum(2, 2)}</p>
 	<button on:click={() => (showTicker = !showTicker)}>Toggle Ticker</button>
+	<button on:click={() => ($ticker = Math.floor(Math.random() * 1234))}>
+		Set to random number
+	</button>
 	{#if showTicker}
 		<Ticker {ticker} />
 	{/if}

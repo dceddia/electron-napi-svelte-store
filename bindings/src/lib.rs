@@ -44,6 +44,12 @@ impl Ticker {
     Ok(())
   }
 
+  #[napi]
+  pub fn set(&mut self, value: u32) -> Result<()> {
+    self.value = value;
+    self.notify_subscribers()
+  }
+
   /// Implement Svelte's Store Contract, defined as:
   ///
   /// store = {
