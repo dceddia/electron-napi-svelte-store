@@ -1,4 +1,4 @@
-use napi::{bindgen_prelude::*, CallContext, JsUndefined};
+use napi::{bindgen_prelude::*, CallContext, JsUndefined, Ref};
 use std::collections::HashMap;
 
 #[macro_use]
@@ -14,6 +14,7 @@ pub struct Ticker {
   value: u32,
   subscribers: HashMap<u64, JsFunction>,
   next_subscriber: u64,
+  cb: Option<Ref<()>>,
 }
 
 #[napi]
@@ -24,6 +25,7 @@ impl Ticker {
       value: value.unwrap_or(0),
       subscribers: HashMap::new(),
       next_subscriber: 0,
+      cb: None,
     }
   }
 
@@ -35,12 +37,12 @@ impl Ticker {
   }
 
   fn notify_subscribers(&mut self, env: Env) -> Result<()> {
-    for (_, callback) in &self.subscribers {
-      let args = vec![env.create_double(self.value as f64)?];
+    if let Some(cb) = &self.cb {
+      let args = vec![env.create_uint32(self.value)?];
       println!("calling subscriber w/ {}", self.value);
-      callback.call(None, &args)?;
+      let cb: JsFunction = env.get_reference_value(cb)?;
+      cb.call(None, &args)?;
     }
-
     println!("notify complete");
     Ok(())
   }
@@ -71,7 +73,9 @@ impl Ticker {
     // Save the callback in a way that we can call it later, and remove it
     let key = self.next_subscriber;
     self.next_subscriber += 1;
-    self.subscribers.insert(key, callback);
+    // self.subscribers.insert(key, callback);
+    let cbref = env.create_reference(callback)?;
+    self.cb = Some(cbref);
 
     let unsubscribe = |ctx: CallContext| -> Result<JsUndefined> {
       // self.subscribers.remove(&key);
