@@ -4,6 +4,9 @@ This repo shows a demo of an Electron app running a Svelte UI that reads
 and writes a Svelte store, but with a twist: the store is implemented in
 native Rust code 😎
 
+Read the [blog post](https://daveceddia.com/svelte-store-in-rust/) to
+learn how it came together.
+
 ## How to Run
 
 Fair warning, it's not the most ergonomic project to develop with!
