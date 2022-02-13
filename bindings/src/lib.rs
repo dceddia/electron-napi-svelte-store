@@ -1,7 +1,7 @@
 use napi::{
   bindgen_prelude::*,
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  CallContext, JsObject, JsUndefined, Ref,
+  CallContext, JsUndefined,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -32,14 +32,12 @@ impl Ticker {
   }
 
   #[napi]
-  pub fn increment(&mut self, env: Env) -> Result<()> {
+  pub fn increment(&mut self) -> Result<()> {
     self.value += 1;
-    println!("increment! now {}", self.value);
-    self.notify_subscribers(env)
+    self.notify_subscribers()
   }
 
-  fn notify_subscribers(&mut self, env: Env) -> Result<()> {
-    println!("notifying {} subscribers", self.subscribers.borrow().len());
+  fn notify_subscribers(&mut self) -> Result<()> {
     for (_, cbref) in self.subscribers.borrow().iter() {
       cbref.call(self.value, ThreadsafeFunctionCallMode::Blocking);
     }
@@ -77,29 +75,18 @@ impl Ticker {
     // Call once with the initial value
     tsfn.call(self.value, ThreadsafeFunctionCallMode::Blocking);
 
-    // Save the callback in a way that we can call it later, and remove it
+    // Save the callback so that we can call it later
     let key = self.next_subscriber;
     self.next_subscriber += 1;
     self.subscribers.borrow_mut().insert(key, tsfn);
 
-    let subs = self.subscribers.clone();
+    // Pass back an unsubscribe callback that will remove the subscription when called
+    let subscribers = self.subscribers.clone();
     let unsubscribe = move |ctx: CallContext| -> Result<JsUndefined> {
-      subs.borrow_mut().remove(&key);
-      println!("should unsubscribe?!");
+      subscribers.borrow_mut().remove(&key);
       ctx.env.get_undefined()
     };
 
     env.create_function_from_closure("unsubscribe", unsubscribe)
-    // get_js_function(unsubscribe_js_function)
   }
-}
-
-#[napi]
-pub fn unsubscribe(env: Env) -> Result<()> {
-  println!(
-    "unsub w/ args",
-    // this.coerce_to_string()?.into_utf8()?.as_str()
-  );
-
-  Ok(())
 }
