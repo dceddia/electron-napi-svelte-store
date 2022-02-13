@@ -1,8 +1,4 @@
-use napi::{
-  bindgen_prelude::*,
-  threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  CallContext, JsUndefined,
-};
+use napi::{bindgen_prelude::*, CallContext, JsUndefined};
 use std::collections::HashMap;
 
 #[macro_use]
@@ -16,7 +12,7 @@ pub fn sum(a: i32, b: i32) -> i32 {
 #[napi]
 pub struct Ticker {
   value: u32,
-  subscribers: HashMap<u64, ThreadsafeFunction<u32>>,
+  subscribers: HashMap<u64, JsFunction>,
   next_subscriber: u64,
 }
 
@@ -40,10 +36,9 @@ impl Ticker {
 
   fn notify_subscribers(&mut self, env: Env) -> Result<()> {
     for (_, callback) in &self.subscribers {
-      // let args = vec![env.create_double(self.value as f64)?];
+      let args = vec![env.create_double(self.value as f64)?];
       println!("calling subscriber w/ {}", self.value);
-      // callback.call(None, &args)?;
-      callback.call(Ok(self.value), ThreadsafeFunctionCallMode::Blocking);
+      callback.call(None, &args)?;
     }
 
     println!("notify complete");
@@ -70,17 +65,13 @@ impl Ticker {
   ///   Such a store is called a writable store.
   #[napi]
   pub fn subscribe(&mut self, env: Env, callback: JsFunction) -> Result<JsFunction> {
-    // Create a threadsafe wrapper
-    let tsfn: ThreadsafeFunction<u32, ErrorStrategy::CalleeHandled> = callback
-      .create_threadsafe_function(0, |ctx| ctx.env.create_uint32(ctx.value).map(|v| vec![v]))?;
-
     // Call once with the initial value
-    tsfn.call(Ok(self.value), ThreadsafeFunctionCallMode::Blocking);
+    callback.call(None, vec![env.create_uint32(self.value)?].as_slice())?;
 
     // Save the callback in a way that we can call it later, and remove it
     let key = self.next_subscriber;
     self.next_subscriber += 1;
-    self.subscribers.insert(key, tsfn);
+    self.subscribers.insert(key, callback);
 
     let unsubscribe = |ctx: CallContext| -> Result<JsUndefined> {
       // self.subscribers.remove(&key);
