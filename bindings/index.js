@@ -210,7 +210,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { sum, JsRepeater } = nativeBinding
+const { sum, Ticker } = nativeBinding
 
 module.exports.sum = sum
-module.exports.JsRepeater = JsRepeater
+module.exports.Ticker = Ticker

@@ -1,5 +1,7 @@
 <script>
 	export let name;
+
+	let ticker = new Napi.Ticker(42);
 </script>
 
 <main>
@@ -9,6 +11,8 @@
 		how to build Svelte apps.
 	</p>
 	<p>2 + 2 = {Napi.sum(2, 2)}</p>
+	<p>value is {$ticker}</p>
+	<button on:click={() => ticker.increment()}>Increment</button>
 </main>
 
 <style>
