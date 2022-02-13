@@ -3,6 +3,8 @@
 	export let name;
 
 	let showTicker = true;
+
+	let ticker = new Napi.Ticker(42);
 </script>
 
 <main>
@@ -10,8 +12,9 @@
 	<p>2 + 2 = {Napi.sum(2, 2)}</p>
 	<button on:click={() => (showTicker = !showTicker)}>Toggle Ticker</button>
 	{#if showTicker}
-		<Ticker />
+		<Ticker {ticker} />
 	{/if}
+	<p>Also: {$ticker}</p>
 </main>
 
 <style>

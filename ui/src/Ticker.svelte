@@ -1,5 +1,5 @@
 <script>
-  let ticker = new Napi.Ticker(42);
+  export let ticker;
 </script>
 
 <p>value is {$ticker}</p>
