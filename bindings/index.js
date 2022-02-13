@@ -210,7 +210,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { sum, Ticker } = nativeBinding
+const { sum, Counter } = nativeBinding
 
 module.exports.sum = sum
-module.exports.Ticker = Ticker
+module.exports.Counter = Counter

@@ -14,17 +14,17 @@ pub fn sum(a: i32, b: i32) -> i32 {
 }
 
 #[napi]
-pub struct Ticker {
+pub struct Counter {
   value: u32,
   subscribers: Rc<RefCell<HashMap<u64, ThreadsafeFunction<u32, ErrorStrategy::Fatal>>>>,
   next_subscriber: u64,
 }
 
 #[napi]
-impl Ticker {
+impl Counter {
   #[napi(constructor)]
-  pub fn new(value: Option<u32>) -> Ticker {
-    Ticker {
+  pub fn new(value: Option<u32>) -> Counter {
+    Counter {
       value: value.unwrap_or(0),
       subscribers: Rc::new(RefCell::new(HashMap::new())),
       next_subscriber: 0,

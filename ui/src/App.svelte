@@ -1,21 +1,21 @@
 <script>
-	import Ticker from "./Ticker.svelte";
+	import Counter from "./Counter.svelte";
 
-	let showTicker = true;
+	let showCounter = true;
 
-	let ticker = new Napi.Ticker(42);
+	let counter = new Napi.Counter(42);
 </script>
 
 <main>
 	<h1>Svelte store, built in Rust!</h1>
-	<button on:click={() => (showTicker = !showTicker)}>Toggle Counter</button>
-	<button on:click={() => ($ticker = Math.floor(Math.random() * 1234))}>
+	<button on:click={() => (showCounter = !showCounter)}>Toggle Counter</button>
+	<button on:click={() => ($counter = Math.floor(Math.random() * 1234))}>
 		Set to random number
 	</button>
-	{#if showTicker}
-		<Ticker {ticker} />
+	{#if showCounter}
+		<Counter {counter} />
 	{/if}
-	<p>Also: {$ticker}</p>
+	<p>Also: {$counter}</p>
 </main>
 
 <style>
