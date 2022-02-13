@@ -4,8 +4,8 @@
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
-    "start": "cd bindings && npm run build && cd .. && electron .",
-    "start:debug": "cd bindings && npm run build:debug && cd .. && electron .",
+    "start": "cd bindings && npm run build && cd .. && cd ui && npm run build && cd .. && electron .",
+    "start:debug": "cd bindings && npm run build:debug && cd .. && cd ui && npm run build && cd .. && electron .",
     "start:clean": "npm run clean && npm run start:debug",
     "clean": "cd bindings && rm -rf target"
   },
