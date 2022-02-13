@@ -10,6 +10,7 @@ export class ExternalObject<T> {
   }
 }
 export function sum(a: number, b: number): number
+export function unsubscribe(): void
 export class Ticker {
   constructor(value?: number | undefined | null)
   increment(): void

@@ -1,9 +1,9 @@
 use napi::{
   bindgen_prelude::*,
   threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  CallContext, JsUndefined, Ref,
+  CallContext, JsObject, JsUndefined, Ref,
 };
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[macro_use]
 extern crate napi_derive;
@@ -13,12 +13,10 @@ pub fn sum(a: i32, b: i32) -> i32 {
   a + b
 }
 
-type JsFunctionRef = Ref<()>;
-
 #[napi]
 pub struct Ticker {
   value: u32,
-  subscribers: HashMap<u64, ThreadsafeFunction<u32, ErrorStrategy::Fatal>>,
+  subscribers: Rc<RefCell<HashMap<u64, ThreadsafeFunction<u32, ErrorStrategy::Fatal>>>>,
   next_subscriber: u64,
 }
 
@@ -28,7 +26,7 @@ impl Ticker {
   pub fn new(value: Option<u32>) -> Ticker {
     Ticker {
       value: value.unwrap_or(0),
-      subscribers: HashMap::new(),
+      subscribers: Rc::new(RefCell::new(HashMap::new())),
       next_subscriber: 0,
     }
   }
@@ -41,7 +39,8 @@ impl Ticker {
   }
 
   fn notify_subscribers(&mut self, env: Env) -> Result<()> {
-    for (_, cbref) in &self.subscribers {
+    println!("notifying {} subscribers", self.subscribers.borrow().len());
+    for (_, cbref) in self.subscribers.borrow().iter() {
       cbref.call(self.value, ThreadsafeFunctionCallMode::Blocking);
     }
     Ok(())
@@ -81,14 +80,26 @@ impl Ticker {
     // Save the callback in a way that we can call it later, and remove it
     let key = self.next_subscriber;
     self.next_subscriber += 1;
-    self.subscribers.insert(key, tsfn);
+    self.subscribers.borrow_mut().insert(key, tsfn);
 
-    let unsubscribe = |ctx: CallContext| -> Result<JsUndefined> {
-      // self.subscribers.remove(&key);
+    let subs = self.subscribers.clone();
+    let unsubscribe = move |ctx: CallContext| -> Result<JsUndefined> {
+      subs.borrow_mut().remove(&key);
       println!("should unsubscribe?!");
       ctx.env.get_undefined()
     };
 
     env.create_function_from_closure("unsubscribe", unsubscribe)
+    // get_js_function(unsubscribe_js_function)
   }
+}
+
+#[napi]
+pub fn unsubscribe(env: Env) -> Result<()> {
+  println!(
+    "unsub w/ args",
+    // this.coerce_to_string()?.into_utf8()?.as_str()
+  );
+
+  Ok(())
 }
