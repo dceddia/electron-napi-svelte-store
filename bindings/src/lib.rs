@@ -9,12 +9,13 @@ pub fn sum(a: i32, b: i32) -> i32 {
   a + b
 }
 
+type JsFunctionRef = Ref<()>;
+
 #[napi]
 pub struct Ticker {
   value: u32,
-  subscribers: HashMap<u64, JsFunction>,
+  subscribers: HashMap<u64, JsFunctionRef>,
   next_subscriber: u64,
-  cb: Option<Ref<()>>,
 }
 
 #[napi]
@@ -25,7 +26,6 @@ impl Ticker {
       value: value.unwrap_or(0),
       subscribers: HashMap::new(),
       next_subscriber: 0,
-      cb: None,
     }
   }
 
@@ -37,13 +37,14 @@ impl Ticker {
   }
 
   fn notify_subscribers(&mut self, env: Env) -> Result<()> {
-    if let Some(cb) = &self.cb {
+    for (_, cbref) in &self.subscribers {
+      // Get the callback out of the Ref that was saved earlier in `subscribe`
+      let callback: JsFunction = env.get_reference_value(cbref)?;
+
+      // Call it
       let args = vec![env.create_uint32(self.value)?];
-      println!("calling subscriber w/ {}", self.value);
-      let cb: JsFunction = env.get_reference_value(cb)?;
-      cb.call(None, &args)?;
+      callback.call(None, &args)?;
     }
-    println!("notify complete");
     Ok(())
   }
 
@@ -70,15 +71,18 @@ impl Ticker {
     // Call once with the initial value
     callback.call(None, vec![env.create_uint32(self.value)?].as_slice())?;
 
-    // Save the callback in a way that we can call it later, and remove it
-    let key = self.next_subscriber;
-    self.next_subscriber += 1;
-    // self.subscribers.insert(key, callback);
+    // Explicitly create a reference to the callback so that it doesn't get
+    // garbage collected after returning.
     let cbref = env.create_reference(callback)?;
-    self.cb = Some(cbref);
+
+    // Save the callback so that we can call it later
+    let key = self.next_subscriber;
+    self.subscribers.insert(key, cbref);
+    self.next_subscriber += 1;
 
     let unsubscribe = |ctx: CallContext| -> Result<JsUndefined> {
       // self.subscribers.remove(&key);
+      println!("should unsubscribe!");
       ctx.env.get_undefined()
     };
 
