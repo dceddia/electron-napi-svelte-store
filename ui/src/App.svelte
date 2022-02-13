@@ -1,18 +1,17 @@
 <script>
+	import Ticker from "./Ticker.svelte";
 	export let name;
 
-	let ticker = new Napi.Ticker(42);
+	let showTicker = true;
 </script>
 
 <main>
 	<h1>Hello {name}!</h1>
-	<p>
-		Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn
-		how to build Svelte apps.
-	</p>
 	<p>2 + 2 = {Napi.sum(2, 2)}</p>
-	<p>value is {$ticker}</p>
-	<button on:click={() => ticker.increment()}>Increment</button>
+	<button on:click={() => (showTicker = !showTicker)}>Toggle Ticker</button>
+	{#if showTicker}
+		<Ticker />
+	{/if}
 </main>
 
 <style>

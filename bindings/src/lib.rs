@@ -1,4 +1,8 @@
-use napi::{bindgen_prelude::*, CallContext, JsUndefined, Ref};
+use napi::{
+  bindgen_prelude::*,
+  threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  CallContext, JsUndefined, Ref,
+};
 use std::collections::HashMap;
 
 #[macro_use]
@@ -14,7 +18,7 @@ type JsFunctionRef = Ref<()>;
 #[napi]
 pub struct Ticker {
   value: u32,
-  subscribers: HashMap<u64, JsFunctionRef>,
+  subscribers: HashMap<u64, ThreadsafeFunction<u32, ErrorStrategy::Fatal>>,
   next_subscriber: u64,
 }
 
@@ -38,12 +42,7 @@ impl Ticker {
 
   fn notify_subscribers(&mut self, env: Env) -> Result<()> {
     for (_, cbref) in &self.subscribers {
-      // Get the callback out of the Ref that was saved earlier in `subscribe`
-      let callback: JsFunction = env.get_reference_value(cbref)?;
-
-      // Call it
-      let args = vec![env.create_uint32(self.value)?];
-      callback.call(None, &args)?;
+      cbref.call(self.value, ThreadsafeFunctionCallMode::Blocking);
     }
     Ok(())
   }
@@ -68,21 +67,25 @@ impl Ticker {
   ///   Such a store is called a writable store.
   #[napi]
   pub fn subscribe(&mut self, env: Env, callback: JsFunction) -> Result<JsFunction> {
+    // Create a threadsafe wrapper
+    //
+    // The `Fatal` ErrorStrategy is best here because the argument we pass will come out as the first
+    // one in JS. The `CalleeHandled` strategy, on the other hand, uses Node's calling convention,
+    // where the first argument is the error (or null), and that doesn't follow the Svelte store contract.
+    let tsfn: ThreadsafeFunction<u32, ErrorStrategy::Fatal> = callback
+      .create_threadsafe_function(0, |ctx| ctx.env.create_uint32(ctx.value).map(|v| vec![v]))?;
+
     // Call once with the initial value
-    callback.call(None, vec![env.create_uint32(self.value)?].as_slice())?;
+    tsfn.call(self.value, ThreadsafeFunctionCallMode::Blocking);
 
-    // Explicitly create a reference to the callback so that it doesn't get
-    // garbage collected after returning.
-    let cbref = env.create_reference(callback)?;
-
-    // Save the callback so that we can call it later
+    // Save the callback in a way that we can call it later, and remove it
     let key = self.next_subscriber;
-    self.subscribers.insert(key, cbref);
     self.next_subscriber += 1;
+    self.subscribers.insert(key, tsfn);
 
     let unsubscribe = |ctx: CallContext| -> Result<JsUndefined> {
       // self.subscribers.remove(&key);
-      println!("should unsubscribe!");
+      println!("should unsubscribe?!");
       ctx.env.get_undefined()
     };
 
