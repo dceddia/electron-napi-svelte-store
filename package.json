@@ -21,8 +21,5 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^16.0.6"
-  },
-  "dependencies": {
-    "barebones-napi": "file:../barebones-napi"
   }
 }
